@@ -1,0 +1,69 @@
+# Basic movement
+h - move left
+j - move down
+k - move up
+l - move right
+w - jump to next word
+b - jump to previous word
+0 - beginning of line
+$ - end of line
+gg - go to top of file
+G - go to bottom of file
+
+# Insert / replace
+i - insert before cursor
+I - insert at line start
+a - append after cursor
+A - append at line end
+o - open new line below
+O - open new line above
+r<char> - replace single character
+
+# Editing
+x - delete character under cursor
+dw - delete to start of next word
+dd - delete current line
+D - delete to end of line
+cw - change word
+cc - change entire line
+C - change to end of line
+yy - yank (copy) line
+p - paste after cursor
+P - paste before cursor
+u - undo
+Ctrl-r - redo
+
+# Visual mode
+v - visual (charwise) select
+V - visual line select
+Ctrl-v - visual block select
+> - indent selection
+< - unindent selection
+
+# Searching
+/term - forward search
+?term - backward search
+n - next match
+N - previous match
+:%s/old/new/g - replace all in file
+
+# Buffers, tabs & files
+:bd - close buffer
+:bn / :bp - next / previous buffer
+:tabnew filename - open file in new tab
+gt / gT - next / previous tab
+:w - save
+:q - quit
+:wq - save and quit
+:q! - quit without saving
+
+# Example .vimrc mappings
+" quickly exit insert mode by typing jk
+inoremap jk <Esc>
+
+" map leader key and a common toggle (set leader if desired)
+let mapleader = ","
+nnoremap <leader>ff :Telescope find_files<CR>
+
+" quick save
+nnoremap <leader>w :w<CR>

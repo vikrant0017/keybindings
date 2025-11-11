@@ -1,0 +1,121 @@
+#!/bin/bash
+
+# Configuration: Maximum width for the action column
+MAX_ACTION_WIDTH=40
+
+# Configuration: Column position where keybinds should align
+KEYBIND_COLUMN=45
+
+# Get the directory where this script is located
+# This allows the script to find format_bindings.awk regardless of where it's called from
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Path to the external awk script
+AWK_SCRIPT="${SCRIPT_DIR}/format_bindings.awk"
+
+# Check if the awk script exists
+if [[ ! -f "$AWK_SCRIPT" ]]; then
+    echo "Error: AWK script not found at $AWK_SCRIPT" >&2
+    exit 1
+fi
+
+
+list_apps () {
+    ls keybinds |
+    tr ' ' '\n' |
+    awk -F '.' '{
+        printf "%s\n", $1
+    }'
+}
+
+show_keybinds () {
+    local app=$1
+    if [[ -z "$app" ]]; then
+        awkit $1 | show_menu
+    fi
+
+    cat "keybinds/${app}.bind" |
+    awk -F '-' \
+        -v MAX_WIDTH="$MAX_ACTION_WIDTH" \
+        -v COL_POS="$KEYBIND_COLUMN" '{
+            # Skip empty lines
+            if (NF == 0 || length($0) == 0) next
+
+            # Skip comment lines (lines starting with #)
+            if ($0 ~ /^[[:space:]]*#/) next
+
+            # Split on '=' delimiter
+            # $1 = action (left side)
+            # $2 = keybind (right side)
+            keybind = $1
+            action = $2
+
+            # Trim leading whitespace from action
+            gsub(/^[[:space:]]+/, "", action)
+
+            # Trim trailing whitespace from action
+            gsub(/[[:space:]]+$/, "", action)
+
+            # Trim leading whitespace from keybind
+            gsub(/^[[:space:]]+/, "", keybind)
+
+            # Trim trailing whitespace from keybind
+            gsub(/[[:space:]]+$/, "", keybind)
+
+            # Skip if action or keybind is empty after trimming
+            if (length(action) == 0 || length(keybind) == 0) next
+
+            # Get the length of the action text
+            action_len = length(action)
+
+            # Truncate action if it exceeds maximum width
+            if (action_len > MAX_WIDTH) {
+                # Extract first (MAX_WIDTH - 3) characters and append ellipsis
+                action = substr(action, 1, MAX_WIDTH - 3) "..."
+                action_len = MAX_WIDTH
+            }
+
+            # Calculate padding needed to align keybinds at COL_POS
+            padding = COL_POS - action_len
+
+            # Ensure minimum padding of 2 spaces for readability
+            if (padding < 2) padding = 2
+
+            # Format and print the line
+            # %-*s: left-align string with dynamic width
+            printf "%-*s%s\n", action_len + padding, action, keybind
+        }' \
+    | walker --dmenu -p 'Custom Keybinds' --width 800 --height "$menu_height" \
+    | go_back
+}
+
+go_back () {
+    local str
+    read -r str # read from stdin , this allows for piping diretly to the function
+    echo "STR: $str"
+    if [[ -n "$str" ]]; then
+        echo "Bye"
+    else
+        echo "ehll"
+        main
+    fi
+
+}
+
+show_main_menu () {
+    local app_list="$(list_apps)"
+    echo "$app_list" | walker --dmenu -p 'Custom Keybinds' --width 800 --height "$menu_height"
+}
+
+
+monitor_height=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .height')
+menu_height=$((monitor_height * 40 / 100))
+
+main () {
+    local app=$(show_main_menu)
+    if [[ -n "$app" ]]; then
+        show_keybinds $app
+    fi
+}
+
+main
